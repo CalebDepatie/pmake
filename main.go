@@ -13,43 +13,6 @@ type Recipe struct {
 	ShellCommands []string // todo, this will require resolution
 }
 
-type Node struct {
-	Exec     Recipe
-	Children []Node
-}
-
-func CreateNode(recipe_name string, proj map[string]Recipe) Node {
-  var depends []Node
-  for _, depend_name := range proj[recipe_name].Dependencies {
-    depends = append(depends, CreateNode(depend_name, proj))
-  }
-
-  return Node{
-    Exec:     proj[recipe_name],
-    Children: depends,
-  }
-}
-
-func ExecuteGraph(cur_node Node) {
-  for _, child_node := range cur_node.Children {
-    ExecuteGraph(child_node)
-  }
-
-  for _, command := range cur_node.Exec.ShellCommands {
-    commandParts := strings.Split(command, " ")
-    cmd := exec.Command(commandParts[0], commandParts[1:]...)
-
-    stdout, err := cmd.Output()
-
-    if err != nil {
-      fmt.Println(err.Error())
-      return
-    }
-
-    fmt.Println(string(stdout))
-  }
-}
-
 func main() {
 
 	file, err := os.Open("makefile")
@@ -91,8 +54,8 @@ func main() {
 	// Create execution tree
 	graphHead := CreateNode("test", Project)
 	fmt.Println(graphHead)
-  fmt.Println("")
+	fmt.Println("")
 
-  // Recipe execution
-  ExecuteGraph(graphHead)
+	// Recipe execution
+	ExecuteGraph(graphHead)
 }
