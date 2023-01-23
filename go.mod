@@ -1,3 +1,3 @@
-module github.com/CalebDepatie/pmake.git
+module github.com/CalebDepatie/pmake
 
 go 1.19
