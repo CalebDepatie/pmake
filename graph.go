@@ -11,6 +11,7 @@ func CreateNode(recipe_name string, proj map[string]Recipe) Node {
 		depends = append(depends, CreateNode(depend_name, proj))
 	}
 
+	total_recipes += 1
 	return Node{
 		Exec:     proj[recipe_name],
 		Children: depends,

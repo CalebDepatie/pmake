@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -42,8 +41,18 @@ func main() {
 			if strings.Contains(line, ":") {
 				var dependString string
 				curRecipe, dependString, _ = strings.Cut(line, ":")
+
+				hasNoDepends := (dependString == "\n" || dependString == "" || dependString == " ")
+				var depends []string
+
+				if hasNoDepends {
+
+				} else {
+					depends = strings.Split(strings.TrimSpace(dependString), " ")
+				}
+
 				Project[curRecipe] = Recipe{
-					Dependencies: strings.Split(strings.TrimSpace(dependString), " "),
+					Dependencies: depends,
 				}
 				isRecipe = true
 			}
@@ -53,9 +62,8 @@ func main() {
 
 	// Create execution tree
 	graphHead := CreateNode("test", Project)
-	fmt.Println(graphHead)
-	fmt.Println("")
 
 	// Recipe execution
-	ExecuteGraph(graphHead)
+	x := 0
+	ExecuteGraph(graphHead, &x)
 }
