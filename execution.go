@@ -17,9 +17,9 @@ func RecipeFormat(command, out string, recipe_num int) {
 	fmt.Println(recipe_prog, "\t"+command+"\n", "\t"+out)
 }
 
-func ExecuteRecipe(cur_recipe Recipe, recipe_num int) {
+func (r *Recipe) Update(recipe_num int) {
 
-	for _, command := range cur_recipe.ShellCommands {
+	for _, command := range r.ShellCommands {
 		commandParts := strings.Split(command, " ")
 		cmd := exec.Command(commandParts[0], commandParts[1:]...)
 
@@ -34,11 +34,11 @@ func ExecuteRecipe(cur_recipe Recipe, recipe_num int) {
 	}
 }
 
-func ExecuteGraph(cur_node Node, recipe_num *int) {
+func ExecuteGraph(cur_node *Node, recipe_num *int) {
 	for _, child_node := range cur_node.Children {
 		ExecuteGraph(child_node, recipe_num)
 	}
 
   *recipe_num += 1
-	ExecuteRecipe(cur_node.Exec, *recipe_num)
+	cur_node.Exec.Update(*recipe_num)
 }
