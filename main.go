@@ -10,6 +10,7 @@ import (
 type Recipe struct {
 	Dependencies  []string
 	ShellCommands []string // todo, this will require resolution
+	Executing chan int
 }
 
 func main() {
@@ -64,6 +65,6 @@ func main() {
 	graphHead := CreateNode("test", Project)
 
 	// Recipe execution
-	x := 0
+	x := 1
 	ExecuteGraph(graphHead, &x)
 }
