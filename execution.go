@@ -23,7 +23,27 @@ func recipeFormat(command, out string) {
 	fmt.Println(out)
 }
 
-func (r *Recipe) Update(recipe_num *int, env []EnvVar) {
+func createCommand(command string, env []EnvVar) string {
+	for _, envVar := range env {
+		var replacement string
+
+		if len(envVar.Val) == 0 {
+			replacement = " "
+		} else {
+			replacement = strings.Join(envVar.Val, " ")
+		}
+
+		command = strings.ReplaceAll(
+			command,
+			"$("+envVar.Key+")",
+			replacement,
+		)
+	}
+
+	return command
+}
+
+func (r *Recipe) update(recipe_num *int, env []EnvVar) {
 	// gate for if this has been chosen
 	if r.Executing == nil {
 		r.Executing = make(chan int)
@@ -35,22 +55,8 @@ func (r *Recipe) Update(recipe_num *int, env []EnvVar) {
 	outputHeader(*recipe_num)
 
 	for _, command := range r.ShellCommands {
-		command_to_run := command
-		for _, envVar := range env {
-			var replacement string
+		command_to_run := createCommand(command, env)
 
-			if len(envVar.Val) == 0 {
-				replacement = " "
-			} else {
-				replacement = strings.Join(envVar.Val, " ")
-			}
-
-			command_to_run = strings.ReplaceAll(
-				command_to_run,
-				"$("+envVar.Key+")",
-				replacement,
-			)
-		}
 		// fmt.Println(command_to_run)
 		commandParts := strings.Split(command_to_run, " ")
 		cmd := exec.Command(commandParts[0], commandParts[1:]...)
@@ -74,7 +80,7 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar) {
 	}
 
 	if !cur_node.Executed {
-		cur_node.Exec.Update(recipe_num, env)
+		cur_node.Exec.update(recipe_num, env)
 		cur_node.Executed = true
 	}
 }
