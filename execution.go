@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ttacon/chalk"
 	"os/exec"
 	"strings"
 )
@@ -12,9 +13,14 @@ func init() {
 	total_recipes = 0
 }
 
-func RecipeFormat(command, out string, recipe_num int) {
-	recipe_prog := fmt.Sprintf("[%v/%v] : ", recipe_num, total_recipes)
-	fmt.Println(recipe_prog, command+"\n", "\t"+out)
+func outputHeader(recipe_num int) {
+	recipe_prog := fmt.Sprintf("[%v/%v]", recipe_num, total_recipes)
+	fmt.Println(chalk.Bold.TextStyle(recipe_prog))
+}
+
+func recipeFormat(command, out string) {
+	fmt.Println(chalk.Bold.TextStyle("    " + command))
+	fmt.Println(out)
 }
 
 func (r *Recipe) Update(recipe_num *int, env []EnvVar) {
@@ -26,17 +32,18 @@ func (r *Recipe) Update(recipe_num *int, env []EnvVar) {
 		return
 	}
 
+	outputHeader(*recipe_num)
+
 	for _, command := range r.ShellCommands {
-    command_to_run := command
+		command_to_run := command
 		for _, envVar := range env {
-      var replacement string
+			var replacement string
 
-      if len(envVar.Val) == 0 {
-        replacement = " "
-      } else {
-        replacement = strings.Join(envVar.Val, " ")
-      }
-
+			if len(envVar.Val) == 0 {
+				replacement = " "
+			} else {
+				replacement = strings.Join(envVar.Val, " ")
+			}
 
 			command_to_run = strings.ReplaceAll(
 				command_to_run,
@@ -44,20 +51,16 @@ func (r *Recipe) Update(recipe_num *int, env []EnvVar) {
 				replacement,
 			)
 		}
-    // fmt.Println(command_to_run)
+		// fmt.Println(command_to_run)
 		commandParts := strings.Split(command_to_run, " ")
 		cmd := exec.Command(commandParts[0], commandParts[1:]...)
 
-		stdout, err := cmd.Output()
+		stdout, err := cmd.CombinedOutput()
 
-    RecipeFormat(command, string(stdout), *recipe_num)
+		recipeFormat(command_to_run, string(stdout))
 
-    if err != nil {
-      if exiterr, ok := err.(*exec.ExitError); ok {
-        fmt.Println("\t", string(exiterr.Stderr), "\n")
-      } else {
-        fmt.Println("\t", err.Error(), "\n")
-      }
+		if err != nil {
+			fmt.Println(err.Error(), "\n")
 		}
 	}
 

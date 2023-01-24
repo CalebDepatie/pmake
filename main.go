@@ -80,6 +80,11 @@ func main() {
 		}
 	}
 
+	// Check recipe to execute
+	if len(os.Args[1:]) > 0 {
+		firstRecipe = os.Args[1]
+	}
+
 	// Create execution tree
 	graphHead := CreateNode(firstRecipe, Project)
 
