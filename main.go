@@ -26,6 +26,10 @@ func main() {
 	graphHead := CreateNode(recipe, Project)
 
 	// Recipe execution
-	x := 1
+	x := 0
 	ExecuteGraph(graphHead, &x, environment)
+
+	if failed_flag {
+		panic("Error executing makefile")
+	}
 }

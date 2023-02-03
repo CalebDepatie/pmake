@@ -8,19 +8,22 @@ import (
 )
 
 var total_recipes int // how to keep track with parallel edges?
+var failed_flag bool  // a flag to track if any recipe failes
 
 func init() {
 	total_recipes = 0
+	failed_flag = false
 }
 
-func outputHeader(recipe_num int) {
+func outputHeader(recipe_num int) string {
 	recipe_prog := fmt.Sprintf("[%v/%v]", recipe_num, total_recipes)
-	fmt.Println(chalk.Bold.TextStyle(recipe_prog))
+	return chalk.Bold.TextStyle(recipe_prog)
 }
 
-func recipeFormat(command, out string) {
-	fmt.Println(chalk.Bold.TextStyle("    " + command))
-	fmt.Println(out)
+func recipeFormat(command, out string) string {
+	s := chalk.Bold.TextStyle("    " + command)
+	s += "\n" + out + "\n"
+	return s
 }
 
 func createCommand(command string, env []EnvVar) string {
@@ -47,30 +50,34 @@ func (r *Recipe) update(recipe_num *int, env []EnvVar) {
 	// gate for if this has been chosen
 	if r.Executing == nil {
 		r.Executing = make(chan int)
+		*recipe_num += 1
 	} else {
 		_ = <-r.Executing
 		return
 	}
 
-	outputHeader(*recipe_num)
+	output_string := outputHeader(*recipe_num) + "\n"
+
+	// check if the work actually needs to be done
 
 	for _, command := range r.ShellCommands {
 		command_to_run := createCommand(command, env)
 
-		// fmt.Println(command_to_run)
 		commandParts := strings.Split(command_to_run, " ")
 		cmd := exec.Command(commandParts[0], commandParts[1:]...)
 
 		stdout, err := cmd.CombinedOutput()
 
-		recipeFormat(command_to_run, string(stdout))
+		output_string += recipeFormat(command_to_run, string(stdout))
 
 		if err != nil {
-			fmt.Println(err.Error(), "\n")
+			output_string += err.Error()
+			failed_flag = true
 		}
 	}
 
-	*recipe_num += 1
+	fmt.Printf(output_string)
+
 	close(r.Executing)
 }
 
