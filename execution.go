@@ -130,8 +130,8 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar, parent_wait *sy
 	}
 
 	child_wait := new(sync.WaitGroup)
+	child_wait.Add(len(cur_node.Children))
 	for _, child_node := range cur_node.Children {
-		child_wait.Add(1)
 		go ExecuteGraph(child_node, recipe_num, env, child_wait)
 	}
 
