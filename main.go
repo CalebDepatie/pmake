@@ -27,7 +27,7 @@ func main() {
 
 	// Recipe execution
 	x := 0
-	if ExecuteGraph(graphHead, &x, environment) {
+	if ExecuteGraph(graphHead, &x, environment, nil) {
 		fmt.Println("Files up to date, no work")
 	}
 

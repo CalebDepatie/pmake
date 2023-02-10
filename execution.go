@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 var (
@@ -120,14 +121,26 @@ func checkFile(node Node) bool {
 	return true
 }
 
-func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar) bool {
-	for _, child_node := range cur_node.Children {
-		ExecuteGraph(child_node, recipe_num, env)
+func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar, parent_wait *sync.WaitGroup) bool {
+
+	notifyParent := func() {
+		if parent_wait != nil {
+			parent_wait.Done()
+		}
 	}
+
+	child_wait := new(sync.WaitGroup)
+	for _, child_node := range cur_node.Children {
+		child_wait.Add(1)
+		go ExecuteGraph(child_node, recipe_num, env, child_wait)
+	}
+
+	child_wait.Wait()
 
 	skipWork := checkFile(*cur_node)
 
 	if skipWork {
+		notifyParent()
 		return skipWork
 	}
 
@@ -135,6 +148,8 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar) bool {
 		cur_node.Exec.update(recipe_num, env)
 		cur_node.Executed = true
 	}
+
+	notifyParent()
 
 	return skipWork
 }
