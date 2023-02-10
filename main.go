@@ -27,7 +27,9 @@ func main() {
 
 	// Recipe execution
 	x := 0
-	ExecuteGraph(graphHead, &x, environment)
+	if ExecuteGraph(graphHead, &x, environment) {
+		fmt.Println("Files up to date, no work")
+	}
 
 	if failed_flag {
 		panic("Error executing makefile")

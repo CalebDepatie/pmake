@@ -10,6 +10,7 @@ type Recipe struct {
 	Dependencies  []string
 	ShellCommands []string // todo, this will require resolution
 	Executing     chan int
+	Name          string
 }
 
 type EnvVar struct {
@@ -65,6 +66,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, []EnvVar, string) {
 
 				Project[curRecipe] = Recipe{
 					Dependencies: getDependencies(dependString),
+					Name:         curRecipe,
 				}
 				isRecipe = true
 

@@ -3,16 +3,28 @@ package main
 import (
 	"fmt"
 	"github.com/ttacon/chalk"
+	"io/fs"
+	"os"
 	"os/exec"
 	"strings"
 )
 
-var total_recipes int // how to keep track with parallel edges?
-var failed_flag bool  // a flag to track if any recipe failes
+var (
+	total_recipes int  // how to keep track with parallel edges?
+	failed_flag   bool // a flag to track if any recipe fails
+	filesystem    fs.FS
+)
 
 func init() {
 	total_recipes = 0
 	failed_flag = false
+
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Couldn't get working directory: " + err.Error())
+	}
+
+	filesystem = os.DirFS(wd)
 }
 
 func outputHeader(recipe_num int) string {
@@ -58,8 +70,6 @@ func (r *Recipe) update(recipe_num *int, env []EnvVar) {
 
 	output_string := outputHeader(*recipe_num) + "\n"
 
-	// check if the work actually needs to be done
-
 	for _, command := range r.ShellCommands {
 		command_to_run := createCommand(command, env)
 
@@ -81,13 +91,50 @@ func (r *Recipe) update(recipe_num *int, env []EnvVar) {
 	close(r.Executing)
 }
 
-func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar) {
+func checkFile(node Node) bool {
+	result_file := node.Exec.Name
+	src_files := node.Exec.Dependencies
+
+	result_info, err := fs.Stat(filesystem, result_file)
+	if err != nil {
+		// fmt.Println("Debug: could not stat result file")
+		return false
+	}
+
+	result_time := result_info.ModTime()
+
+	for _, file := range src_files {
+		file_info, err := fs.Stat(filesystem, file)
+		if err != nil {
+			// fmt.Println("Debug: could not stat file " + file)
+			return false
+		}
+
+		file_time := file_info.ModTime()
+
+		if file_time.After(result_time) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar) bool {
 	for _, child_node := range cur_node.Children {
 		ExecuteGraph(child_node, recipe_num, env)
+	}
+
+	skipWork := checkFile(*cur_node)
+
+	if skipWork {
+		return skipWork
 	}
 
 	if !cur_node.Executed {
 		cur_node.Exec.update(recipe_num, env)
 		cur_node.Executed = true
 	}
+
+	return skipWork
 }
