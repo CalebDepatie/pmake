@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -55,6 +57,25 @@ func expandVariable(input_var string, env []envVar) string {
 	return output_var
 }
 
+func expandWildcards(s string) string {
+	string_parts := strings.Split(s, " ")
+
+	for i, cur_string := range string_parts {
+		if !strings.ContainsRune(cur_string, '*') {
+			continue
+		}
+
+		matches, err := filepath.Glob(cur_string)
+		if err != nil {
+			fmt.Println("Error expanding " + cur_string + ": " + err.Error())
+		}
+
+		string_parts[i] = strings.Join(matches, " ")
+	}
+
+	return strings.Join(string_parts, " ")
+}
+
 // handle variable and wildcard expansions
 func expandProject(Project map[string]Recipe, environment []envVar) map[string]Recipe {
 	// expand environment variables
@@ -73,13 +94,21 @@ func expandProject(Project map[string]Recipe, environment []envVar) map[string]R
 	// expand shell commands
 	for cur_recipe, r := range Project {
 		expanded_cmds := make([]string, len(r.ShellCommands))
+
 		for i, cmd := range r.ShellCommands {
 			// expand variables
 			expanded_cmds[i] = expandVariable(cmd, expanded_env)
+
+			// expand wildcards
+			expanded_cmds[i] = expandWildcards(cmd)
 		}
 
 		r.ShellCommands = expanded_cmds
 		Project[cur_recipe] = r
+
+		for i, dep := range r.Dependencies {
+			r.Dependencies[i] = expandWildcards(dep)
+		}
 	}
 
 	return Project
