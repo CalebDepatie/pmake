@@ -22,6 +22,12 @@ func main() {
 		recipe = firstRecipe
 	}
 
+	_, ok := Project[recipe]
+	if !ok {
+		fmt.Println("Recipe " + recipe + " does not exist")
+		return
+	}
+
 	// Create execution tree
 	graphHead := CreateNode(recipe, Project)
 
