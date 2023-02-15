@@ -39,27 +39,7 @@ func recipeFormat(command, out string) string {
 	return s
 }
 
-func createCommand(command string, env []EnvVar) string {
-	for _, envVar := range env {
-		var replacement string
-
-		if len(envVar.Val) == 0 {
-			replacement = " "
-		} else {
-			replacement = strings.Join(envVar.Val, " ")
-		}
-
-		command = strings.ReplaceAll(
-			command,
-			"$("+envVar.Key+")",
-			replacement,
-		)
-	}
-
-	return command
-}
-
-func (r *Recipe) update(recipe_num *int, env []EnvVar) {
+func (r *Recipe) update(recipe_num *int) {
 	// gate for if this has been chosen
 	if r.Executing == nil {
 		r.Executing = make(chan int)
@@ -72,14 +52,13 @@ func (r *Recipe) update(recipe_num *int, env []EnvVar) {
 	output_string := outputHeader(*recipe_num) + "\n"
 
 	for _, command := range r.ShellCommands {
-		command_to_run := createCommand(command, env)
 
-		commandParts := strings.Split(command_to_run, " ")
+		commandParts := strings.Split(command, " ")
 		cmd := exec.Command(commandParts[0], commandParts[1:]...)
 
 		stdout, err := cmd.CombinedOutput()
 
-		output_string += recipeFormat(command_to_run, string(stdout))
+		output_string += recipeFormat(command, string(stdout))
 
 		if err != nil {
 			output_string += err.Error()
@@ -121,7 +100,7 @@ func checkFile(node Node) bool {
 	return true
 }
 
-func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar, parent_wait *sync.WaitGroup) bool {
+func ExecuteGraph(cur_node *Node, recipe_num *int, parent_wait *sync.WaitGroup) bool {
 
 	notifyParent := func() {
 		if parent_wait != nil {
@@ -132,7 +111,7 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar, parent_wait *sy
 	child_wait := new(sync.WaitGroup)
 	child_wait.Add(len(cur_node.Children))
 	for _, child_node := range cur_node.Children {
-		go ExecuteGraph(child_node, recipe_num, env, child_wait)
+		go ExecuteGraph(child_node, recipe_num, child_wait)
 	}
 
 	child_wait.Wait()
@@ -145,7 +124,7 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, env []EnvVar, parent_wait *sy
 	}
 
 	if !cur_node.Executed {
-		cur_node.Exec.update(recipe_num, env)
+		cur_node.Exec.update(recipe_num)
 		cur_node.Executed = true
 	}
 

@@ -8,12 +8,12 @@ import (
 
 type Recipe struct {
 	Dependencies  []string
-	ShellCommands []string // todo, this will require resolution
+	ShellCommands []string
 	Executing     chan int
 	Name          string
 }
 
-type EnvVar struct {
+type envVar struct {
 	Key string
 	Val []string
 }
@@ -34,7 +34,58 @@ func getDependencies(s string) []string {
 	return depends
 }
 
-func GetRecipes(file *os.File) (map[string]Recipe, []EnvVar, string) {
+func expandVariable(input_var string, env []envVar) string {
+	output_var := input_var
+	for _, envVar := range env {
+		var replacement string
+
+		if len(envVar.Val) == 0 {
+			replacement = " "
+		} else {
+			replacement = strings.Join(envVar.Val, " ")
+		}
+
+		output_var = strings.ReplaceAll(
+			output_var,
+			"$("+envVar.Key+")",
+			replacement,
+		)
+	}
+
+	return output_var
+}
+
+// handle variable and wildcard expansions
+func expandProject(Project map[string]Recipe, environment []envVar) map[string]Recipe {
+	// expand environment variables
+	expanded_env := make([]envVar, len(environment))
+	for i, env_var := range environment {
+		expanded_env[i] = envVar{
+			Key: env_var.Key,
+			Val: make([]string, len(env_var.Val)),
+		}
+
+		for j, val := range env_var.Val {
+			expanded_env[i].Val[j] = expandVariable(val, environment)
+		}
+	}
+
+	// expand shell commands
+	for cur_recipe, r := range Project {
+		expanded_cmds := make([]string, len(r.ShellCommands))
+		for i, cmd := range r.ShellCommands {
+			// expand variables
+			expanded_cmds[i] = expandVariable(cmd, expanded_env)
+		}
+
+		r.ShellCommands = expanded_cmds
+		Project[cur_recipe] = r
+	}
+
+	return Project
+}
+
+func GetRecipes(file *os.File) (map[string]Recipe, string) {
 	Project := map[string]Recipe{}
 
 	// file parsing
@@ -42,7 +93,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, []EnvVar, string) {
 	isRecipe := false
 	curRecipe := ""
 	firstRecipe := ""
-	var environment []EnvVar
+	var environment []envVar
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -74,7 +125,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, []EnvVar, string) {
 				words := strings.Split(line, " ")
 
 				if words[1] == "=" {
-					environment = append(environment, EnvVar{
+					environment = append(environment, envVar{
 						Key: words[0],
 						Val: words[2:],
 					})
@@ -83,5 +134,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, []EnvVar, string) {
 		}
 	}
 
-	return Project, environment, firstRecipe
+	Project = expandProject(Project, environment)
+
+	return Project, firstRecipe
 }

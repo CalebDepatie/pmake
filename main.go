@@ -12,7 +12,7 @@ func main() {
 		fmt.Println("No makefile detected in directory")
 	}
 
-	Project, environment, firstRecipe := GetRecipes(file)
+	Project, firstRecipe := GetRecipes(file)
 
 	// Check recipe to execute
 	var recipe string
@@ -27,7 +27,7 @@ func main() {
 
 	// Recipe execution
 	x := 0
-	if ExecuteGraph(graphHead, &x, environment, nil) {
+	if ExecuteGraph(graphHead, &x, nil) {
 		fmt.Println("Files up to date, no work")
 	}
 
