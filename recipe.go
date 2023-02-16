@@ -100,7 +100,7 @@ func expandProject(Project map[string]Recipe, environment []envVar) map[string]R
 			expanded_cmds[i] = expandVariable(cmd, expanded_env)
 
 			// expand wildcards
-			expanded_cmds[i] = expandWildcards(cmd)
+			expanded_cmds[i] = expandWildcards(expanded_cmds[i])
 		}
 
 		r.ShellCommands = expanded_cmds
