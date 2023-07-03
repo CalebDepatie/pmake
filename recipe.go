@@ -151,14 +151,16 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 				isRecipe = true
 
 			} else if strings.Contains(line, "=") {
-				words := strings.Split(line, " ")
+				name, values, _ := strings.Cut(line, "=")
 
-				if words[1] == "=" {
-					environment = append(environment, envVar{
-						Key: words[0],
-						Val: words[2:],
-					})
-				}
+				name = strings.TrimSpace(name)
+				values = strings.TrimSpace(values)
+				words := strings.Split(values, " ")
+
+				environment = append(environment, envVar{
+					Key: name,
+					Val: words,
+				})
 			}
 		}
 	}
