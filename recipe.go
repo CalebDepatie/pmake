@@ -98,9 +98,6 @@ func expandProject(Project map[string]Recipe, environment []envVar) map[string]R
 		for i, cmd := range r.ShellCommands {
 			// expand variables
 			expanded_cmds[i] = expandVariable(cmd, expanded_env)
-
-			// expand wildcards
-			expanded_cmds[i] = expandWildcards(expanded_cmds[i])
 		}
 
 		r.ShellCommands = expanded_cmds

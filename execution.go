@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 )
 
@@ -53,8 +52,12 @@ func (r *Recipe) update(recipe_num *int) {
 
 	for _, command := range r.ShellCommands {
 
-		commandParts := strings.Split(command, " ")
-		cmd := exec.Command(commandParts[0], commandParts[1:]...)
+		shell, ok := os.LookupEnv("SHELL")
+		if !ok {
+			fmt.Println("Could not get environment variable $SHELL for execution")
+		}
+
+		cmd := exec.Command(shell, "-c", command)
 
 		stdout, err := cmd.CombinedOutput()
 
