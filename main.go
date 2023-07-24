@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 )
@@ -14,10 +15,17 @@ func main() {
 
 	Project, firstRecipe := GetRecipes(file)
 
+	// Setting up flags
+	jobs := flag.Int("j", 4, "maximum number of jobs to run simultaneously")
+
 	// Check recipe to execute
+	flag.Parse()
+	args := flag.Args()
 	var recipe string
-	if len(os.Args[1:]) > 0 {
-		recipe = os.Args[1]
+
+	if len(args) > 0 {
+		recipe = args[0]
+
 	} else {
 		recipe = firstRecipe
 	}
@@ -33,7 +41,8 @@ func main() {
 
 	// Recipe execution
 	x := 0
-	if ExecuteGraph(graphHead, &x, nil) {
+	pool := NewGoPool(*jobs)
+	if ExecuteGraph(graphHead, &x, pool, nil) {
 		fmt.Println("Files up to date, no work")
 	}
 
