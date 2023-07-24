@@ -103,7 +103,7 @@ func checkFile(node Node) bool {
 	return true
 }
 
-func ExecuteGraph(cur_node *Node, recipe_num *int, parent_wait *sync.WaitGroup) bool {
+func ExecuteGraph(cur_node *Node, recipe_num *int, pool *GoPool, parent_wait *sync.WaitGroup) bool {
 
 	notifyParent := func() {
 		if parent_wait != nil {
@@ -114,7 +114,7 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, parent_wait *sync.WaitGroup) 
 	child_wait := new(sync.WaitGroup)
 	child_wait.Add(len(cur_node.Children))
 	for _, child_node := range cur_node.Children {
-		go ExecuteGraph(child_node, recipe_num, child_wait)
+		go ExecuteGraph(child_node, recipe_num, pool, child_wait)
 	}
 
 	child_wait.Wait()
@@ -127,8 +127,10 @@ func ExecuteGraph(cur_node *Node, recipe_num *int, parent_wait *sync.WaitGroup) 
 	}
 
 	if !cur_node.Executed {
+		pool.StartJob()
 		cur_node.Exec.update(recipe_num)
 		cur_node.Executed = true
+		pool.JobDone()
 	}
 
 	notifyParent()
