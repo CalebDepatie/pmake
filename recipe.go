@@ -114,6 +114,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 
 	environment := make(map[string][]string)
 	environment[".RECIPEPREFIX"] = []string{""}
+	environment[".DEFAULT_GOAL"] = []string{""}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -163,6 +164,10 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 	}
 
 	Project = expandProject(Project, environment)
+
+	if environment[".DEFAULT_GOAL"][0] != "" {
+		firstRecipe = strings.Join(environment[".DEFAULT_GOAL"], " ")
+	}
 
 	return Project, firstRecipe
 }
