@@ -15,11 +15,6 @@ type Recipe struct {
 	Name          string
 }
 
-type envVar struct {
-	Key string
-	Val []string
-}
-
 func addShellCommands(s string, cur_recipe Recipe) Recipe {
 	cur_recipe.ShellCommands = append(cur_recipe.ShellCommands, strings.TrimSpace(s))
 	return cur_recipe
@@ -36,20 +31,20 @@ func getDependencies(s string) []string {
 	return depends
 }
 
-func expandVariable(input_var string, env []envVar) string {
+func expandVariable(input_var string, env map[string][]string) string {
 	output_var := input_var
-	for _, envVar := range env {
+	for key, val := range env {
 		var replacement string
 
-		if len(envVar.Val) == 0 {
+		if len(val) == 0 {
 			replacement = " "
 		} else {
-			replacement = strings.Join(envVar.Val, " ")
+			replacement = strings.Join(val, " ")
 		}
 
 		output_var = strings.ReplaceAll(
 			output_var,
-			"$("+envVar.Key+")",
+			"$("+key+")",
 			replacement,
 		)
 	}
@@ -77,17 +72,14 @@ func expandWildcards(s string) string {
 }
 
 // handle variable and wildcard expansions
-func expandProject(Project map[string]Recipe, environment []envVar) map[string]Recipe {
+func expandProject(Project map[string]Recipe, environment map[string][]string) map[string]Recipe {
 	// expand environment variables
-	expanded_env := make([]envVar, len(environment))
-	for i, env_var := range environment {
-		expanded_env[i] = envVar{
-			Key: env_var.Key,
-			Val: make([]string, len(env_var.Val)),
-		}
+	expanded_env := make(map[string][]string)
+	for key, val := range environment {
+		expanded_env[key] = make([]string, len(val))
 
-		for j, val := range env_var.Val {
-			expanded_env[i].Val[j] = expandVariable(val, environment)
+		for i, v := range val {
+			expanded_env[key][i] = expandVariable(v, environment)
 		}
 	}
 
@@ -119,7 +111,9 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 	isRecipe := false
 	curRecipe := ""
 	firstRecipe := ""
-	var environment []envVar
+
+	environment := make(map[string][]string)
+	environment[".RECIPEPREFIX"] = []string{""}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -130,11 +124,20 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 		}
 
 		if isRecipe {
+			// set first recipe for determining which to execute first
 			if firstRecipe == "" {
 				firstRecipe = curRecipe
 			}
 
-			Project[curRecipe] = addShellCommands(line, Project[curRecipe])
+			// ensure that it begins with .RECIPEPREFIX
+			if strings.HasPrefix(line, strings.Join(environment[".RECIPEPREFIX"], " ")) {
+				// remove prefix
+				line = strings.TrimPrefix(line, strings.Join(environment[".RECIPEPREFIX"], " "))
+				Project[curRecipe] = addShellCommands(line, Project[curRecipe])
+			
+			} else {
+				isRecipe = false
+			}
 
 		} else {
 			if strings.Contains(line, ":") {
@@ -154,10 +157,7 @@ func GetRecipes(file *os.File) (map[string]Recipe, string) {
 				values = strings.TrimSpace(values)
 				words := strings.Split(values, " ")
 
-				environment = append(environment, envVar{
-					Key: name,
-					Val: words,
-				})
+				environment[name] = words
 			}
 		}
 	}
